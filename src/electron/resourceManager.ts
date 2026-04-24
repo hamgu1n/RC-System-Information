@@ -10,19 +10,20 @@ import { ipcWebContentsSend } from "./util.js";
 const POLLING_INTERVAL = 1000;
 
 /* =========================
-   INTERNAL API CONFIG
+   CONFIG (EASY TO SWITCH LATER)
 ========================= */
 
-const INTERNAL_API_BASE = "https://your-internal-server.example.com";
-const PUBLIC_IP_ENDPOINT =
-  "https://blackstone.roanoke.edu/scotty/itweboncall/public/api/ip";
+const CONFIG = {
+  PUBLIC_IP_ENDPOINT:
+    process.env.PUBLIC_IP_ENDPOINT ??
+    "https://blackstone.roanoke.edu:4434/scotty/itrelay/public/api/ip",
 
-const IP_AUTH_TOKEN = "future_real_token";
+  SEND_REPORT_ENDPOINT:
+    process.env.SEND_REPORT_ENDPOINT ??
+    "https://blackstone.roanoke.edu:4434/scotty/itrelay/public/api/email",
 
-const SEND_REPORT_ENDPOINT = `${INTERNAL_API_BASE}/api/send-report`;
-
-const REPORT_API_TOKEN =
-  process.env.REPORT_API_TOKEN ?? "REPLACE_WITH_REAL_TOKEN";
+  AUTH_TOKEN: process.env.AUTH_TOKEN ?? "future_real_token",
+};
 
 /* =========================
    LIVE RESOURCE LOOP
@@ -161,8 +162,8 @@ async function getPublicIp(): Promise<string> {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 3000);
 
-      const url = new URL(PUBLIC_IP_ENDPOINT);
-      url.searchParams.set("auth_token", IP_AUTH_TOKEN);
+      const url = new URL(CONFIG.PUBLIC_IP_ENDPOINT);
+      url.searchParams.set("auth_token", CONFIG.AUTH_TOKEN);
 
       const res = await fetch(url.toString(), {
         signal: controller.signal,
@@ -257,8 +258,7 @@ function getInfoFileData(): InfoFilesObject {
 ========================= */
 
 export function buildFullItReport(data: StaticData, stats: Statistics): string {
-  return `
-==============================
+  return `==============================
 RC SYSTEM FULL DIAGNOSTIC REPORT
 ==============================
 
@@ -323,33 +323,44 @@ export async function sendReportToApi(
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;")
     .replace(/\n/g, "<br>")
-    .replace(/ {2}/g, "&nbsp;&nbsp;");
+    .replace(/ {2}/g, "&nbsp;&nbsp;")
+    .trim(); // 👈 prevents leading <br>
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
 
   console.log("SEND REPORT PAYLOAD:", {
-    report: htmlEncoded,
+    auth_token: CONFIG.AUTH_TOKEN,
+    body: htmlEncoded,
   });
 
   try {
-    const res = await fetch(SEND_REPORT_ENDPOINT, {
+    const res = await fetch(CONFIG.SEND_REPORT_ENDPOINT, {
       method: "POST",
       signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${REPORT_API_TOKEN}`,
       },
-      body: JSON.stringify({ report: htmlEncoded }),
+      body: JSON.stringify({
+        auth_token: CONFIG.AUTH_TOKEN,
+        body: htmlEncoded,
+      }),
     });
 
     clearTimeout(timeout);
 
+    const responseText = await res.text();
+
+    console.log("SEND REPORT RESPONSE STATUS:", res.status);
+    console.log("SEND REPORT RESPONSE BODY:", responseText);
+
     if (!res.ok) {
+      console.error("FAILED RESPONSE BODY:", responseText);
       throw new Error(`Send-report endpoint returned ${res.status}`);
     }
   } catch (err) {
     clearTimeout(timeout);
+    console.error("Failed to send report to API:", err);
     throw err;
   }
 }
