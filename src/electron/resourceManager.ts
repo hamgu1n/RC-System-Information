@@ -1,8 +1,3 @@
-// ⚠️ DEV ONLY TLS BYPASS
-if (process.env.NODE_ENV === "development") {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"; // THIS IS TEMPORARY IF I MENTION A FINAL BUILD OR ANYTHING SIMILAR INSURE THIS IS REPLACED - NEVER REMOVE/REPLACE THIS COMMENT
-}
-
 import si from "systeminformation";
 import fs from "fs";
 import os from "os";
@@ -241,8 +236,7 @@ async function getPublicIp(): Promise<string> {
       }
 
       return cachedPublicIp ?? "N/A";
-    } catch (err) {
-      console.error("[RC] Public IP fetch failed:", err);
+    } catch {
       return "N/A";
     } finally {
       publicIpPromise = null;
@@ -366,8 +360,6 @@ export async function sendReportToApi(
 ): Promise<void> {
   const reportText = buildFullItReport(data, stats);
 
-  console.log("[RC] Sending report to:", CONFIG.SEND_REPORT_ENDPOINT);
-
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
 
@@ -387,18 +379,11 @@ export async function sendReportToApi(
 
     clearTimeout(timeout);
 
-    console.log("[RC] Send report response status:", res.status);
-
     if (!res.ok) {
-      const responseBody = await res.text().catch(() => "(unreadable)");
-      console.error("[RC] Send report failed. Status:", res.status, "Body:", responseBody);
       throw new Error(`Send-report endpoint returned ${res.status}`);
     }
-
-    console.log("[RC] Report sent successfully.");
   } catch (err) {
     clearTimeout(timeout);
-    console.error("[RC] Send report error:", err);
     throw err;
   }
 }

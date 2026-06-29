@@ -1,4 +1,4 @@
-# RC System Information
+# RC System Dashboard
 
 A desktop IT diagnostics application built with Electron, React, and TypeScript, distributed by Roanoke College Information Technology.
 

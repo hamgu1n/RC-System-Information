@@ -1,4 +1,4 @@
-# RC System Information - Backend Documentation
+# RC System Dashboard - Backend Documentation
 
 This document describes the internal architecture, data flow, and maintenance details for
 future developers.
@@ -43,7 +43,7 @@ Secure bridge between renderer and main process:
 Function:
 pullResources()
 
-Runs every 1000ms and sends:
+Runs every 3000ms and sends:
 
 - CPU usage
 - RAM usage
@@ -85,8 +85,7 @@ Extracted from OS network interfaces.
 
 Fetched from:
 
-GET https://blackstone.roanoke.edu/scotty/itweboncall/public/api/ip
-//This will change when finished production
+GET https://blackstone.roanoke.edu:4434/scotty/itrelay/public/api/ip
 
 Includes caching system:
 
@@ -104,36 +103,29 @@ buildFullItReport()
 
 Creates a formatted system report containing:
 
-- system info
-- network info
-- performance snapshot
+- Device info (manufacturer, model, serial, RC Tag)
+- System info (computer name, OS, uptime)
+- Owner info (name, email, department, location)
+- Network info (MAC, local IP, public IP, speeds)
+- Hardware snapshot (CPU, RAM, storage usage)
 
----
-
-# Report Encoding
-
-Before sending:
-
-- HTML escaping applied
-- Newlines converted to <br>
-- Spaces normalized
-
-Ensures safe transmission via email relay.
+Newlines are replaced with `<br>` before transmission.
 
 ---
 
 # Report Submission
 
 Endpoint:
-POST /api/send-report
+POST https://blackstone.roanoke.edu:4434/scotty/itrelay/public/api/email
 
 Headers:
-Authorization: Bearer <REPORT_API_TOKEN>
 Content-Type: application/json
 
 Payload:
 {
-"report": "<HTML encoded system report>"
+  "auth_token": "<AUTH_TOKEN from .env>",
+  "body": "<report with newlines replaced by <br>>",
+  "code": "<user-entered code>"
 }
 
 ---
@@ -142,10 +134,10 @@ Payload:
 
 ## Renderer → Main
 
-| Event         | Payload         |
-| ------------- | --------------- |
-| getStaticData | none            |
-| sendToIT      | { data, stats } |
+| Event         | Payload               |
+| ------------- | --------------------- |
+| getStaticData | none                  |
+| sendToIT      | { data, stats, code } |
 
 ---
 
@@ -187,22 +179,17 @@ Used for:
 
 # Security Notes
 
-## ⚠️ Development Only
-
-NODE_TLS_REJECT_UNAUTHORIZED = "0"
-
-This disables TLS verification and must be removed in production builds.
-
----
-
 ## API Security
 
-Authentication uses:
-Bearer token (REPORT_API_TOKEN)
+Authentication uses `auth_token` in the JSON request body.
 
-Stored in environment variables.
+Stored in `.env` as `AUTH_TOKEN` — bundled into the app via `extraResources` at build time.
 
-Never hardcoded in production.
+## IPC Security
+
+- `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`
+- IPC channels are whitelisted in preload
+- Frame URL validated on every IPC call
 
 ---
 
