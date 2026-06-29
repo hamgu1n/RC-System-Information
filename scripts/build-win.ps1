@@ -1,10 +1,9 @@
 # RC System Information - Windows Build Setup
 
-param(
-    [string]$ProjectRoot = $PSScriptRoot + "\.."
-)
-
 $ErrorActionPreference = "Stop"
+
+# Resolve project root (parent of the scripts/ folder)
+$ProjectRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 
 # Always run from project root
 Set-Location $ProjectRoot
