@@ -7,7 +7,7 @@ import si from "systeminformation";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { BrowserWindow } from "electron/main";
+import { BrowserWindow, net } from "electron/main";
 import { ipcWebContentsSend } from "./util.js";
 
 const POLLING_INTERVAL = 1000;
@@ -206,10 +206,10 @@ async function getPublicIp(): Promise<string> {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 3000);
 
-      const res = await fetch(CONFIG.PUBLIC_IP_ENDPOINT!, {
+      const res = await net.fetch(CONFIG.PUBLIC_IP_ENDPOINT!, {
         signal: controller.signal,
         headers: {
-          Authorization: `Bearer ${CONFIG.AUTH_TOKEN}`,
+          auth_token: CONFIG.AUTH_TOKEN!,
         },
       });
 
@@ -229,7 +229,8 @@ async function getPublicIp(): Promise<string> {
       }
 
       return cachedPublicIp ?? "N/A";
-    } catch {
+    } catch (err) {
+      console.error("[RC] Public IP fetch failed:", err);
       return "N/A";
     } finally {
       publicIpPromise = null;
@@ -303,18 +304,41 @@ export function buildFullItReport(data: StaticData, stats: Statistics): string {
 RC SYSTEM FULL DIAGNOSTIC REPORT
 ==============================
 
-Computer Name: ${data.computerName}
-Logged User: ${data.loggedUser}
-Local Account: ${data.infoFiles.localAccount}
+--- DEVICE ---
+Manufacturer:     ${data.deviceManufacturer}
+Model:            ${data.deviceModel}
+Serial Number:    ${data.deviceSerial}
+Year Model:       ${data.infoFiles.yearModel}
+RC Tag:           ${data.infoFiles.rcTag}
 
-Public IP: ${data.publicIp}
+--- SYSTEM ---
+Computer Name:    ${data.computerName}
+Logged User:      ${data.loggedUser}
+Local Account:    ${data.infoFiles.localAccount}
+OS:               ${data.osType} ${data.osVersion} (${data.osArch})
+Uptime:           ${formatUptime(data.uptime)}
 
-CPU Usage: ${Math.round(stats.cpuUsage * 100)}%
-RAM Usage: ${Math.round(stats.ramUsage * 100)}%
-Network Up: ${formatNetworkSpeed(stats.netUp)}
-Network Down: ${formatNetworkSpeed(stats.netDown)}
+--- OWNER ---
+Name:             ${data.infoFiles.ownerFirstName} ${data.infoFiles.ownerLastName}
+Email:            ${data.infoFiles.ownerEmail}
+Department:       ${data.infoFiles.department}
+Usage Type:       ${data.infoFiles.usageType}
+Location:         ${data.infoFiles.assignedLocationBuilding} ${data.infoFiles.assignedLocationRoom}
 
-Uptime: ${formatUptime(data.uptime)}
+--- NETWORK ---
+MAC Address:      ${data.macAddress}
+Local IP:         ${data.localIp}
+Public IP:        ${data.publicIp}
+Network Up:       ${formatNetworkSpeed(stats.netUp)}
+Network Down:     ${formatNetworkSpeed(stats.netDown)}
+
+--- HARDWARE ---
+CPU:              ${data.cpuModel}
+CPU Usage:        ${Math.round(stats.cpuUsage * 100)}%
+RAM:              ${data.totalMemoryGB} GB total
+RAM Usage:        ${Math.round(stats.ramUsage * 100)}%
+Storage:          ${data.totalStorage} GB total
+Storage Usage:    ${Math.round(stats.storageUsage * 100)}%
 
 ==============================`;
 }
@@ -326,36 +350,43 @@ Uptime: ${formatUptime(data.uptime)}
 export async function sendReportToApi(
   data: StaticData,
   stats: Statistics,
+  code: string,
 ): Promise<void> {
   const reportText = buildFullItReport(data, stats);
 
-  if (process.env.NODE_ENV === "development") {
-    console.log("REPORT (DEV ONLY):\n", reportText);
-  }
+  console.log("[RC] Sending report to:", CONFIG.SEND_REPORT_ENDPOINT);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const res = await fetch(CONFIG.SEND_REPORT_ENDPOINT!, {
+    const res = await net.fetch(CONFIG.SEND_REPORT_ENDPOINT!, {
       method: "POST",
       signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${CONFIG.AUTH_TOKEN}`,
       },
       body: JSON.stringify({
-        report: reportText,
+        auth_token: CONFIG.AUTH_TOKEN,
+        body: reportText.replace(/\n/g, "<br>"),
+        code,
       }),
     });
 
     clearTimeout(timeout);
 
+    console.log("[RC] Send report response status:", res.status);
+
     if (!res.ok) {
+      const responseBody = await res.text().catch(() => "(unreadable)");
+      console.error("[RC] Send report failed. Status:", res.status, "Body:", responseBody);
       throw new Error(`Send-report endpoint returned ${res.status}`);
     }
+
+    console.log("[RC] Report sent successfully.");
   } catch (err) {
     clearTimeout(timeout);
+    console.error("[RC] Send report error:", err);
     throw err;
   }
 }

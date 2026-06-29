@@ -1,4 +1,5 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage } from "electron";
+import "./load-env.js";
+import { app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut } from "electron";
 import path from "path";
 
 import { isDev, ipcMainHandle } from "./util.js";
@@ -77,6 +78,7 @@ function createTray() {
 app.on("ready", () => {
   mainWindow = new BrowserWindow({
     title: "RC System Dashboard",
+    height: 500,
     webPreferences: {
       preload: app.isPackaged
         ? path.join(process.resourcesPath, "dist-electron", "preload.cjs")
@@ -90,8 +92,7 @@ app.on("ready", () => {
   });
 
   if (isDev()) {
-    mainWindow.loadURL("http://127.0.0.1:5123/");
-    mainWindow.webContents.openDevTools();
+    mainWindow.loadURL("http://localhost:5123/");
   } else {
     mainWindow.loadFile(getUIPath());
   }
@@ -109,6 +110,10 @@ app.on("ready", () => {
 
   createTray();
 
+  globalShortcut.register("CommandOrControl+Shift+I", () => {
+    mainWindow?.webContents.toggleDevTools();
+  });
+
   /* =========================
      IPC (SECURED)
   ========================= */
@@ -122,9 +127,10 @@ app.on("ready", () => {
       throw new Error("Invalid payload");
     }
 
-    const { data, stats } = payload as {
+    const { data, stats, code } = payload as {
       data: StaticData;
       stats: Statistics;
+      code: string;
     };
 
     if (!data || !stats) {
@@ -135,8 +141,12 @@ app.on("ready", () => {
       throw new Error("Invalid stats format");
     }
 
+    if (typeof code !== "string") {
+      throw new Error("Missing code");
+    }
+
     try {
-      await sendReportToApi(data, stats);
+      await sendReportToApi(data, stats, code);
       return { success: true };
     } catch (err) {
       console.error("Failed to send report to API:", err);

@@ -76,12 +76,13 @@ contextBridge.exposeInMainWorld("electron", {
 
   getStaticData: () => ipcInvoke("getStaticData"),
 
-  sendToIT: (payload: { data: StaticData; stats: Statistics }) => {
+  sendToIT: (payload: { data: StaticData; stats: Statistics; code: string }) => {
     if (
       !payload ||
       typeof payload !== "object" ||
       !payload.data ||
-      !payload.stats
+      !payload.stats ||
+      typeof payload.code !== "string"
     ) {
       throw new Error("Invalid payload for sendToIT");
     }

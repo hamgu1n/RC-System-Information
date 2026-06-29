@@ -47,6 +47,7 @@ type StaticData = {
 type SendToITPayload = {
   data: StaticData;
   stats: Statistics;
+  code: string;
 };
 
 type SendToITResponse = {
