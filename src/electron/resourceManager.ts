@@ -10,7 +10,8 @@ import path from "path";
 import { BrowserWindow, net } from "electron/main";
 import { ipcWebContentsSend } from "./util.js";
 
-const POLLING_INTERVAL = 1000;
+const POLLING_INTERVAL = 3000;
+const STORAGE_POLLING_INTERVAL = 30000;
 
 /* =========================
    CONFIG (STRICT)
@@ -74,31 +75,36 @@ function formatUptime(seconds: number): string {
 ========================= */
 
 export function pullResources(mainWindow: BrowserWindow) {
+  let cachedStorageUsage = 0;
+
+  const storageInterval = setInterval(async () => {
+    if (mainWindow.isDestroyed()) { clearInterval(storageInterval); return; }
+    const fsData = await si.fsSize();
+    const disk = fsData[0];
+    cachedStorageUsage = disk ? disk.use / 100 : 0;
+  }, STORAGE_POLLING_INTERVAL);
+
   const interval = setInterval(async () => {
     if (mainWindow.isDestroyed()) {
       clearInterval(interval);
+      clearInterval(storageInterval);
       return;
     }
 
-    const [cpu, mem, fsData, net] = await Promise.all([
+    const [cpu, mem, net] = await Promise.all([
       si.currentLoad(),
       si.mem(),
-      si.fsSize(),
       si.networkStats(),
     ]);
 
     const cpuUsage = cpu.currentLoad / 100;
     const ramUsage = (mem.total - mem.available) / mem.total;
-
-    const disk = fsData[0];
-    const storageUsage = disk ? disk.use / 100 : 0;
-
     const netStats = net[0];
 
     const stats: Statistics = {
       cpuUsage,
       ramUsage,
-      storageUsage,
+      storageUsage: cachedStorageUsage,
       netUp: netStats?.tx_sec ?? 0,
       netDown: netStats?.rx_sec ?? 0,
     };

@@ -33,20 +33,26 @@ Write-Host ""
 Write-Host "Checking for .env file..." -ForegroundColor Yellow
 
 if (-not (Test-Path ".env")) {
-    Write-Host ".env file not found. Please enter the required values:" -ForegroundColor Yellow
-    Write-Host ""
+    if (Test-Path "scripts\env-values.txt") {
+        Write-Host "Loading values from scripts\env-values.txt..." -ForegroundColor Yellow
+        Copy-Item "scripts\env-values.txt" ".env"
+        Write-Host ".env created from env-values.txt." -ForegroundColor Green
+    } else {
+        Write-Host ".env not found. Please enter the required values:" -ForegroundColor Yellow
+        Write-Host ""
 
-    $publicIp = Read-Host "PUBLIC_IP_ENDPOINT"
-    $sendReport = Read-Host "SEND_REPORT_ENDPOINT"
-    $authToken = Read-Host "AUTH_TOKEN"
+        $publicIp = Read-Host "PUBLIC_IP_ENDPOINT"
+        $sendReport = Read-Host "SEND_REPORT_ENDPOINT"
+        $authToken = Read-Host "AUTH_TOKEN"
 
-    @"
+        @"
 PUBLIC_IP_ENDPOINT=$publicIp
 SEND_REPORT_ENDPOINT=$sendReport
 AUTH_TOKEN=$authToken
 "@ | Set-Content ".env"
 
-    Write-Host ".env created." -ForegroundColor Green
+        Write-Host ".env created." -ForegroundColor Green
+    }
 } else {
     Write-Host ".env already exists, skipping." -ForegroundColor Green
 }

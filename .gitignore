@@ -16,6 +16,7 @@ dist-electron
 .env
 .env.*
 release/
+scripts/env-values.txt
 
 # Editor directories and files
 .vscode/*

@@ -78,7 +78,6 @@ function createTray() {
 app.on("ready", () => {
   mainWindow = new BrowserWindow({
     title: "RC System Dashboard",
-    height: 500,
     webPreferences: {
       preload: app.isPackaged
         ? path.join(process.resourcesPath, "dist-electron", "preload.cjs")
