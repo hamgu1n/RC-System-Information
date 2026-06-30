@@ -37,8 +37,7 @@
   "win": {
     "target": ["nsis", "portable"],
     "icon": "./assets/desktopIcon.ico",
-    "legalTrademarks": "Roanoke College Information Technology",
-    "forceCodeSigning": false
+    "legalTrademarks": "Roanoke College Information Technology"
   },
 
   "nsis": {
