@@ -13,8 +13,9 @@ const STORAGE_POLLING_INTERVAL = 30000;
 ========================= */
 
 const CONFIG = {
-  PUBLIC_IP_ENDPOINT: "https://blackstone.roanoke.edu:4434/scotty/itrelay/public/api/ip",
-  SEND_REPORT_ENDPOINT: "https://blackstone.roanoke.edu:4434/scotty/itrelay/public/api/email",
+  PUBLIC_IP_ENDPOINT: "https://itrelay.roanoke.edu/api/ip",
+  SEND_REPORT_ENDPOINT:
+    "https://blackstone.roanoke.edu:4434/scotty/itrelay/public/api/email",
   AUTH_TOKEN: process.env.AUTH_TOKEN,
 };
 
@@ -100,7 +101,10 @@ export function pullResources(mainWindow: BrowserWindow) {
   poll();
 
   const storageInterval = setInterval(() => {
-    if (mainWindow.isDestroyed()) { clearInterval(storageInterval); return; }
+    if (mainWindow.isDestroyed()) {
+      clearInterval(storageInterval);
+      return;
+    }
     pollStorage();
   }, STORAGE_POLLING_INTERVAL);
 
@@ -239,7 +243,8 @@ async function getPublicIp(): Promise<string> {
       }
 
       return cachedPublicIp ?? "N/A";
-    } catch {
+    } catch (err) {
+      console.error("[IP] failed:", err instanceof Error ? err.message : err);
       return "N/A";
     } finally {
       publicIpPromise = null;
