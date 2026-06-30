@@ -40,10 +40,16 @@ if (-not (Test-Path ".env")) {
         Copy-Item "scripts\env-values.txt" ".env"
         Write-Host ".env created from env-values.txt." -ForegroundColor Green
     } else {
-        Write-Host ".env not found. Please enter the AUTH_TOKEN:" -ForegroundColor Yellow
+        Write-Host ".env not found. Please enter the required values:" -ForegroundColor Yellow
         Write-Host ""
         $authToken = Read-Host "AUTH_TOKEN"
-        "AUTH_TOKEN=$authToken" | Set-Content ".env"
+        $publicIpEndpoint = Read-Host "PUBLIC_IP_ENDPOINT"
+        $sendReportEndpoint = Read-Host "SEND_REPORT_ENDPOINT"
+        @(
+            "AUTH_TOKEN=$authToken",
+            "PUBLIC_IP_ENDPOINT=$publicIpEndpoint",
+            "SEND_REPORT_ENDPOINT=$sendReportEndpoint"
+        ) | Set-Content ".env"
         Write-Host ".env created." -ForegroundColor Green
     }
 } else {

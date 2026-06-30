@@ -13,9 +13,8 @@ const STORAGE_POLLING_INTERVAL = 30000;
 ========================= */
 
 const CONFIG = {
-  PUBLIC_IP_ENDPOINT: "https://itrelay.roanoke.edu/api/ip",
-  SEND_REPORT_ENDPOINT:
-    "https://blackstone.roanoke.edu:4434/scotty/itrelay/public/api/email",
+  PUBLIC_IP_ENDPOINT: process.env.PUBLIC_IP_ENDPOINT,
+  SEND_REPORT_ENDPOINT: process.env.SEND_REPORT_ENDPOINT,
   AUTH_TOKEN: process.env.AUTH_TOKEN,
 };
 
@@ -24,9 +23,9 @@ const CONFIG = {
 ========================= */
 
 function validateEnv() {
-  if (!CONFIG.AUTH_TOKEN) {
-    throw new Error("Missing AUTH_TOKEN");
-  }
+  const missing = (["AUTH_TOKEN", "PUBLIC_IP_ENDPOINT", "SEND_REPORT_ENDPOINT"] as const)
+    .filter((k) => !CONFIG[k]);
+  if (missing.length) throw new Error(`Missing env vars: ${missing.join(", ")}`);
 }
 
 validateEnv();
