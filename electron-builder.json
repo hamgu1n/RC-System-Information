@@ -42,6 +42,7 @@
   },
 
   "nsis": {
+    "artifactName": "${productName} Setup.${ext}",
     "installerHeaderIcon": "./assets/desktopIcon.ico",
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
