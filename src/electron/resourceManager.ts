@@ -325,48 +325,80 @@ function getInfoFileData(): InfoFilesObject {
 ========================= */
 
 export function buildFullItReport(data: StaticData, stats: Statistics): string {
-  return `==============================
-RC SYSTEM FULL DIAGNOSTIC REPORT
-==============================
+  const row = (label: string, value: string) => `
+    <tr>
+      <td style="padding:6px 12px;font-weight:600;color:#6b7280;white-space:nowrap;width:160px">${label}</td>
+      <td style="padding:6px 12px;color:#111827">${value || "—"}</td>
+    </tr>`;
 
---- DEVICE ---
-Manufacturer:     ${data.deviceManufacturer}
-Model:            ${data.deviceModel}
-Serial Number:    ${data.deviceSerial}
-Year Model:       ${data.infoFiles.yearModel}
-RC Tag:           ${data.infoFiles.rcTag}
+  const section = (title: string, rows: string) => `
+    <tr><td colspan="2" style="padding:18px 12px 4px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding-bottom:4px">${title}</div>
+    </td></tr>
+    ${rows}`;
 
---- SYSTEM ---
-Computer Name:    ${data.computerName}
-Logged User:      ${data.loggedUser}
-Local Account:    ${data.infoFiles.localAccount}
-OS:               ${data.osType} ${data.osVersion} (${data.osArch})
-Uptime:           ${formatUptime(data.uptime)}
-
---- OWNER ---
-Name:             ${data.infoFiles.ownerFirstName} ${data.infoFiles.ownerLastName}
-Email:            ${data.infoFiles.ownerEmail}
-Department:       ${data.infoFiles.department}
-Usage Type:       ${data.infoFiles.usageType}
-Location:         ${data.infoFiles.assignedLocationBuilding} ${data.infoFiles.assignedLocationRoom}
-
---- NETWORK ---
-WiFi MAC:         ${data.wifiMac}
-Ethernet MAC:     ${data.ethernetMac}
-Local IP:         ${data.localIp}
-Public IP:        ${data.publicIp}
-Network Up:       ${formatNetworkSpeed(stats.netUp)}
-Network Down:     ${formatNetworkSpeed(stats.netDown)}
-
---- HARDWARE ---
-CPU:              ${data.cpuModel}
-CPU Usage:        ${Math.round(stats.cpuUsage * 100)}%
-RAM:              ${data.totalMemoryGB} GB total
-RAM Usage:        ${Math.round(stats.ramUsage * 100)}%
-Storage:          ${data.totalStorage} GB total
-Storage Usage:    ${Math.round(stats.storageUsage * 100)}%
-
-==============================`;
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;margin:32px auto">
+    <tr>
+      <td style="background:#7f1d1d;padding:20px 24px;border-radius:8px 8px 0 0">
+        <div style="color:#fff;font-size:18px;font-weight:700">RC System Diagnostic Report</div>
+        <div style="color:#fca5a5;font-size:13px;margin-top:4px">${data.computerName} &mdash; ${data.loggedUser}</div>
+      </td>
+    </tr>
+    <tr>
+      <td style="background:#fff;border-radius:0 0 8px 8px;padding:8px 12px 20px">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          ${section("Device", `
+            ${row("Manufacturer", data.deviceManufacturer)}
+            ${row("Model", data.deviceModel)}
+            ${row("Serial Number", data.deviceSerial)}
+            ${row("Year Model", data.infoFiles.yearModel)}
+            ${row("RC Tag", data.infoFiles.rcTag)}
+          `)}
+          ${section("System", `
+            ${row("Computer Name", data.computerName)}
+            ${row("Logged User", data.loggedUser)}
+            ${row("Local Account", data.infoFiles.localAccount)}
+            ${row("OS", `${data.osType} ${data.osVersion} (${data.osArch})`)}
+            ${row("Uptime", formatUptime(data.uptime))}
+          `)}
+          ${section("Owner", `
+            ${row("Name", `${data.infoFiles.ownerFirstName} ${data.infoFiles.ownerLastName}`)}
+            ${row("Email", data.infoFiles.ownerEmail)}
+            ${row("Department", data.infoFiles.department)}
+            ${row("Usage Type", data.infoFiles.usageType)}
+            ${row("Location", `${data.infoFiles.assignedLocationBuilding} ${data.infoFiles.assignedLocationRoom}`)}
+          `)}
+          ${section("Network", `
+            ${row("WiFi MAC", data.wifiMac)}
+            ${row("Ethernet MAC", data.ethernetMac)}
+            ${row("Local IP", data.localIp)}
+            ${row("Public IP", data.publicIp)}
+            ${row("Network Up", formatNetworkSpeed(stats.netUp))}
+            ${row("Network Down", formatNetworkSpeed(stats.netDown))}
+          `)}
+          ${section("Hardware", `
+            ${row("CPU", data.cpuModel)}
+            ${row("CPU Usage", `${Math.round(stats.cpuUsage * 100)}%`)}
+            ${row("RAM", `${data.totalMemoryGB} GB total`)}
+            ${row("RAM Usage", `${Math.round(stats.ramUsage * 100)}%`)}
+            ${row("Storage", `${data.totalStorage} GB total`)}
+            ${row("Storage Usage", `${Math.round(stats.storageUsage * 100)}%`)}
+          `)}
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:12px;text-align:center;color:#9ca3af;font-size:11px">
+        Roanoke College Information Technology &mdash; RC System Dashboard
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
 /* =========================
@@ -393,7 +425,7 @@ export async function sendReportToApi(
       },
       body: JSON.stringify({
         subject: `RC System Diagnostic Report - ${data.loggedUser} (${data.computerName})`,
-        body: reportText.replace(/\n/g, "<br>"),
+        body: reportText,
         code,
       }),
     });
