@@ -1,8 +1,5 @@
 import "./load-env.js";
 import { app, BrowserWindow, Tray, Menu, nativeImage, globalShortcut } from "electron";
-
-// Prevents GPU-related crashes on machines with problematic drivers (e.g. AMD)
-app.disableHardwareAcceleration();
 import path from "path";
 
 import { isDev, ipcMainHandle } from "./util.js";
@@ -177,4 +174,15 @@ app.on("ready", () => {
 app.on("before-quit", () => {
   isQuitting = true;
   tray?.destroy();
+});
+
+/* =========================
+   GPU CRASH FALLBACK
+========================= */
+
+app.on("child-process-gone", (_event, details) => {
+  if (details.type === "GPU" && !process.argv.includes("--disable-gpu")) {
+    app.relaunch({ args: [...process.argv.slice(1), "--disable-gpu"] });
+    app.exit(0);
+  }
 });
