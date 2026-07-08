@@ -17,9 +17,10 @@ let tray: Tray | null = null;
    TRAY SETUP
 ========================= */
 function createTray() {
+  const trayIconFile = process.platform === "darwin" ? "Tray_Icon_24.png" : "Tray_Icon_32.png";
   const iconPath = app.isPackaged
-    ? path.join(process.resourcesPath, "assets", "Tray_Icon_16.png")
-    : path.join(app.getAppPath(), "assets", "Tray_Icon_16.png");
+    ? path.join(process.resourcesPath, "assets", trayIconFile)
+    : path.join(app.getAppPath(), "assets", trayIconFile);
 
   const icon = nativeImage.createFromPath(iconPath);
 

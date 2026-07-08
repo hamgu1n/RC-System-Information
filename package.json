@@ -1,7 +1,7 @@
 {
-  "name": "rc-sys-info",
+  "name": "rc-sys-dashboard",
   "description": "A lightweight system information app, distributed by Roanoke College Information Technology.",
-  "author": "haythamhlioui@proton.me",
+  "author": "haythamhlioui@sent.com",
   "private": true,
   "version": "1.0.0",
   "type": "module",
